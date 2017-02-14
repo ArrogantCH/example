@@ -1,0 +1,100 @@
+UnifiedPayMerchantService
+
+public Page<Merchant> findMerchantPageByCondition(int pageIndex, String userId, String mobileNumber, String email, String merchantId,int pageSize) {
+		Pageable p = new PageRequest(pageIndex, pageSize, new Sort(Direction.DESC, "createdAt"));
+		Specification<Merchant> specification = new Specification<Merchant>() {
+			@Override
+			public Predicate toPredicate(Root<Merchant> root, CriteriaQuery<?> query,
+					CriteriaBuilder criteriaBuilder) {
+				List<Predicate> predicates = new ArrayList<Predicate>();
+				/* 根据用户id */
+				if (!StringUtils.isEmpty(userId)) {
+					User user = userRepository.findByUserId(userId);
+					predicates.add(criteriaBuilder.equal(root.get("owner"), user));
+				}
+				/* 根据商户号 */
+				if (!StringUtils.isEmpty(merchantId)) {
+					predicates.add(criteriaBuilder.equal(root.get("merchantId"), merchantId.trim()));
+				}
+				/* 根据手机号 */
+				if (!StringUtils.isEmpty(mobileNumber)) {
+					predicates.add(criteriaBuilder.equal(root.get("mobileNumber"), mobileNumber.trim()));
+				}
+				/* 根据邮箱 */
+				if (!StringUtils.isEmpty(email)) {
+					predicates.add(criteriaBuilder.equal(root.get("email"), email.trim()));
+				}
+				return criteriaBuilder.and(predicates.toArray(new Predicate[] {}));
+			}
+		};
+		return merchantRepository.findAll(specification, p);
+	}
+	
+	public List<Merchant> findMerchantPageByCondition(String userId, String mobileNumber, String email, String merchantId) {
+		Specification<Merchant> specification = new Specification<Merchant>() {
+			@Override
+			public Predicate toPredicate(Root<Merchant> root, CriteriaQuery<?> query,
+					CriteriaBuilder criteriaBuilder) {
+				List<Predicate> predicates = new ArrayList<Predicate>();
+				/* 根据用户id */
+				if (!StringUtils.isEmpty(userId)) {
+					User user = userRepository.findByUserId(userId);
+					predicates.add(criteriaBuilder.equal(root.get("owner"), user));
+				}
+				/* 根据商户号 */
+				if (!StringUtils.isEmpty(merchantId)) {
+					predicates.add(criteriaBuilder.equal(root.get("merchantId"), merchantId.trim()));
+				}
+				/* 根据手机号 */
+				if (!StringUtils.isEmpty(mobileNumber)) {
+					predicates.add(criteriaBuilder.equal(root.get("mobileNumber"), mobileNumber.trim()));
+				}
+				/* 根据邮箱 */
+				if (!StringUtils.isEmpty(email)) {
+					predicates.add(criteriaBuilder.equal(root.get("email"), email.trim()));
+				}
+				return criteriaBuilder.and(predicates.toArray(new Predicate[] {}));
+			}
+		};
+		return merchantRepository.findAll(specification);
+	}
+
+
+
+MerchantRepository
+
+@Repository
+public interface MerchantRepository extends JpaRepository<Merchant, String> {
+
+	Merchant findByMobileNumber(String mobileNumber);
+
+	Merchant findByEmail(String email);
+	
+	
+	//根据内部商户号查询商户
+	Merchant findByMerchantId(String merchantId);
+
+	Page<Merchant> findAll(Specification<Merchant> specification, Pageable p);
+
+	List<Merchant> findAll(Specification<Merchant> specification);
+	
+	int countByMobileNumber(String mobileNumber);
+	
+}
+
+
+
+
+MerchantController
+
+	@WebAction
+	@RequestMapping(value="/export",method=RequestMethod.GET)  
+    public ModelAndView exportExcel(String owner_id, String mobileNumber, String email, String merchantId, ModelMap model){  
+	   List<Merchant> list = unifiedPayMerchantService.findMerchantPageByCondition( owner_id, mobileNumber, email, merchantId);
+	   model.put("merchantList", list);
+       MerchantToExcel viewExcel = new MerchantToExcel();    
+       return new ModelAndView(viewExcel, model);   
+   }
+	
+
+
